@@ -26,6 +26,8 @@ Our approach breaks the complex problem of Text-to-SQL/Pandas into a highly reli
 - **Query DNA Tab:** Extracted JSON with `metrics: ["profit"]`, `dimensions: ["city"]`, `ranking: {"top_n": 2, "order": "desc"}`.
 - **Code Tab:** Generates Pandas: `result = df.groupby('city')['profit'].sum().nlargest(2).reset_index()` and equivalent SQL.
 - **Explanation Tab:** High Confidence (0.9). "Understood as ranking top 2 cities by total profit. Computed by grouping by city, summing profit, and taking the top 2."
+<img width="1916" height="917" alt="image" src="https://github.com/user-attachments/assets/068be3d7-bef6-46b7-942e-81068a59cfe7" />
+
 
 ## 5. Improvements (Given More Time)
 If I had more time to expand the project, I would implement the following novel features and refinements:
