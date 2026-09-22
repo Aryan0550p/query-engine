@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analytics Query Engine</title>
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --surface3: #30363d;
+  --border: #30363d;
+  --accent: #58a6ff;
+  --accent2: #7c3aed;
+  --accent3: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --text3: #6e7681;
+  --s1: #1d4ed8; --s1l: #93c5fd;
+  --s2: #7c3aed; --s2l: #c4b5fd;
+  --s3: #065f46; --s3l: #6ee7b7;
+  --s4: #92400e; --s4l: #fcd34d;
+  --glow: 0 0 20px rgba(88,166,255,0.15);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ── Layout ── */
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+header .logo {
+  display: flex; align-items: center; gap: 10px;
+}
+header .logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+header h1 { font-size: 16px; font-weight: 700; color: var(--text); }
+header p { font-size: 11px; color: var(--text2); }
+
+.header-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--text2);
+}
+.badge.connected { border-color: var(--accent3); color: var(--accent3); }
+.badge .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 300px; flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.sidebar-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.sidebar-section h3 { font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+
+/* Key input */
+.key-row { display: flex; gap: 6px; }
+.key-row input {
+  flex: 1; padding: 7px 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 12px;
+  outline: none;
+}
+.key-row input:focus { border-color: var(--accent); }
+.btn-sm {
+  padding: 7px 12px; border: none; border-radius: var(--radius-sm);
+  background: var(--accent); color: white; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.2s;
+  white-space: nowrap;
+}
+.btn-sm:hover { opacity: 0.85; }
+.btn-sm.secondary { background: var(--surface3); color: var(--text2); }
+.btn-sm.danger { background: var(--danger); }
+.btn-sm.success { background: var(--accent3); }
+
+/* Sample queries */
+.sample-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.sample-item {
+  padding: 8px 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--text2);
+  cursor: pointer; transition: all 0.15s;
+  line-height: 1.4;
+}
+.sample-item:hover { border-color: var(--accent); color: var(--text); background: var(--surface3); }
+
+/* Feedback stats */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px;
+  text-align: center;
+}
+.stat-card .val { font-size: 20px; font-weight: 700; color: var(--accent); }
+.stat-card .lbl { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* History */
+.history-list { flex: 1; overflow-y: auto; padding: 8px 12px; }
+.history-item {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  font-size: 12px; color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items: flex-start; gap: 6px;
+  transition: background 0.15s;
+}
+.history-item:hover { background: var(--surface2); color: var(--text); }
+.history-item .hi-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.history-item .hi-text { flex: 1; line-height: 1.4; }
+.history-item .hi-conf {
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  flex-shrink: 0;
+}
+.hi-conf.high { background: rgba(16,185,129,0.15); color: var(--accent3); }
+.hi-conf.medium { background: rgba(245,158,11,0.15); color: var(--warn); }
+.hi-conf.low { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+/* ── Chat Area ── */
+.chat-area {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.messages {
+  flex: 1; overflow-y: auto;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+/* Welcome screen */
+.welcome {
+  margin: auto;
+  text-align: center;
+  max-width: 480px;
+}
+.welcome .big-icon { font-size: 48px; margin-bottom: 16px; }
+.welcome h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.welcome p { color: var(--text2); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+.pipeline-steps {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  margin-top: 16px;
+}
+.ps {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; font-size: 12px; color: var(--text2);
+}
+.ps .ps-num {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent2); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+
+/* Message bubbles */
+.msg { display: flex; flex-direction: column; gap: 10px; }
+.msg.user { align-items: flex-end; }
+.msg.assistant { align-items: flex-start; }
+
+.msg-bubble {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px; line-height: 1.5;
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  border-radius: 16px 16px 4px 16px;
+}
+.msg.assistant .msg-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 16px 4px;
+  width: 100%; max-width: 100%;
+}
+
+/* Pipeline progress */
+.pipeline-progress {
+  display: flex; gap: 6px; padding: 12px 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.stage-pip {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.stage-pip .sp-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  border: 2px solid var(--border);
+  background: var(--surface2);
+  color: var(--text3);
+  transition: all 0.3s;
+  position: relative;
+}
+.stage-pip.active .sp-dot {
+  border-color: var(--accent);
+  background: rgba(88,166,255,0.1);
+  color: var(--accent);
+  animation: spin-ring 1s linear infinite;
+}
+.stage-pip.done .sp-dot {
+  border-color: var(--accent3);
+  background: rgba(16,185,129,0.15);
+  color: var(--accent3);
+}
+@keyframes spin-ring {
+  0% { box-shadow: 0 0 0 2px transparent, 0 0 8px var(--accent); }
+  50% { box-shadow: 0 0 0 2px var(--accent), 0 0 16px var(--accent); }
+  100% { box-shadow: 0 0 0 2px transparent, 0 0 8px var(--accent); }
+}
+.stage-pip .sp-label { font-size: 9px; color: var(--text3); text-align: center; line-height: 1.2; }
+.stage-pip.active .sp-label { color: var(--accent); }
+.stage-pip.done .sp-label { color: var(--accent3); }
+.stage-connector { width: 20px; height: 2px; background: var(--border); margin-top: 13px; flex-shrink: 0; }
+.stage-connector.done { background: var(--accent3); }
+
+/* Result card */
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rc-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.rc-tab {
+  padding: 10px 16px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text2); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  user-select: none;
+}
+.rc-tab:hover { color: var(--text); }
+.rc-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+
+.rc-panel { display: none; padding: 16px; }
+.rc-panel.active { display: block; }
+
+/* Intent DNA visualization */
+.dna-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px; margin-bottom: 12px;
+}
+.dna-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+.dna-chip .dc-key { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.dna-chip .dc-val { font-size: 12px; color: var(--text); font-weight: 500; }
+
+.intent-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+}
+.intent-badge.aggregation { background: rgba(88,166,255,0.15); color: var(--accent); }
+.intent-badge.ranking { background: rgba(124,58,237,0.15); color: #a78bfa; }
+.intent-badge.comparison { background: rgba(245,158,11,0.15); color: var(--warn); }
+.intent-badge.contribution { background: rgba(16,185,129,0.15); color: var(--accent3); }
+.intent-badge.trend { background: rgba(239,68,68,0.15); color: #f87171; }
+.intent-badge.nested { background: rgba(251,113,133,0.15); color: #fb7185; }
+
+/* Data table */
+.data-table-wrap { overflow-x: auto; max-height: 280px; overflow-y: auto; }
+.data-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.data-table th {
+  padding: 8px 12px; text-align: left;
+  background: var(--surface2); color: var(--text2); font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 1;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.data-table td {
+  padding: 8px 12px; border-bottom: 1px solid rgba(48,54,61,0.5);
+  color: var(--text);
+}
+.data-table tr:hover td { background: var(--surface2); }
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'Courier New', monospace; }
+.cell-anomaly { background: rgba(245,158,11,0.1) !important; color: var(--warn) !important; }
+
+/* Scalar result */
+.scalar-result {
+  text-align: center; padding: 24px;
+}
+.scalar-result .sv { font-size: 40px; font-weight: 800; color: var(--accent); }
+.scalar-result .sk { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+/* Code blocks */
+.code-block {
+  background: #0d1117; border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: auto; max-height: 260px;
+  font-size: 12px; line-height: 1.6;
+}
+.code-block pre {
+  padding: 14px 16px; white-space: pre-wrap; word-break: break-word;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  color: #e6edf3;
+}
+
+/* Python syntax coloring — simple */
+.code-block .kw { color: #ff7b72; }
+.code-block .fn { color: #d2a8ff; }
+.code-block .st { color: #a5d6ff; }
+.code-block .cm { color: #8b949e; font-style: italic; }
+.code-block .nm { color: #ffa657; }
+
+/* SQL syntax coloring */
+.sql-kw { color: #ff7b72; font-weight: 600; }
+.sql-fn { color: #d2a8ff; }
+.sql-st { color: #a5d6ff; }
+
+.code-toggle {
+  display: flex; gap: 4px; margin-bottom: 8px;
+}
+.code-lang-btn {
+  padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+}
+.code-lang-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* Confidence gauge */
+.confidence-section {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 16px;
+  background: var(--surface2); border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.gauge-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.gauge-wrap svg { width: 80px; height: 80px; transform: rotate(-90deg); }
+.gauge-bg { fill: none; stroke: var(--surface3); stroke-width: 8; }
+.gauge-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1); }
+.gauge-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.gauge-pct { font-size: 16px; font-weight: 800; }
+.gauge-lbl { font-size: 8px; color: var(--text3); }
+
+.conf-detail { flex: 1; }
+.conf-label {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  margin-bottom: 6px;
+}
+.conf-label.High { background: rgba(16,185,129,0.15); color: var(--accent3); }
+.conf-label.Medium { background: rgba(245,158,11,0.15); color: var(--warn); }
+.conf-label.Low { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+.conf-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.caveats-list { list-style: none; margin-top: 6px; }
+.caveats-list li {
+  font-size: 11px; color: var(--warn);
+  padding: 2px 0;
+  display: flex; align-items: flex-start; gap: 4px;
+}
+.caveats-list li::before { content: '⚠'; flex-shrink: 0; }
+
+/* Anomaly banner */
+.anomaly-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3);
+  border-radius: var(--radius-sm); margin-bottom: 10px;
+  font-size: 12px; color: var(--warn);
+}
+
+/* Feedback row */
+.feedback-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+.feedback-row span { font-size: 12px; color: var(--text2); flex: 1; }
+.thumb-btn {
+  padding: 5px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--text2);
+  font-size: 12px; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 4px;
+}
+.thumb-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+.thumb-btn.thumbdown:hover { border-color: var(--danger); color: var(--danger); }
+.thumb-btn.active-up { background: rgba(16,185,129,0.1); border-color: var(--accent3); color: var(--accent3); }
+.thumb-btn.active-down { background: rgba(239,68,68,0.1); border-color: var(--danger); color: var(--danger); }
+
+/* Sub-queries */
+.sub-queries {
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;
+}
+.sq-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface2); border: 1px solid rgba(124,58,237,0.3);
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--text2);
+}
+.sq-num {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent2); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+
+/* Feedback bias */
+.bias-section {
+  padding: 10px 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px; color: var(--text2);
+}
+.bias-adj {
+  font-weight: 700;
+  color: var(--accent3);
+}
+.bias-adj.neg { color: var(--danger); }
+
+/* ── Input Area ── */
+.input-area {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.input-wrap {
+  display: flex; gap: 10px; align-items: flex-end;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+}
+.input-wrap:focus-within { border-color: var(--accent); box-shadow: var(--glow); }
+
+#query-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 14px; line-height: 1.5;
+  resize: none; max-height: 100px; min-height: 20px;
+  font-family: inherit;
+}
+#query-input::placeholder { color: var(--text3); }
+
+.send-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: opacity 0.2s, transform 0.15s;
+}
+.send-btn:hover { opacity: 0.9; transform: scale(1.05); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.input-hint {
+  margin-top: 8px; display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--text3);
+}
+.hint-chip {
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.15s;
+}
+.hint-chip:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border); }
+
+/* ── Animations ── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim-in { animation: fadeSlideIn 0.3s ease forwards; }
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to { background-position: 200% center; }
+}
+.loading-text {
+  background: linear-gradient(90deg, var(--text3) 25%, var(--text2) 50%, var(--text3) 75%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ── Benchmark panel ── */
+.bench-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.bench-row:last-child { border-bottom: none; }
+.bench-q { flex: 1; color: var(--text); }
+.bench-conf {
+  font-weight: 700; min-width: 36px; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tooltip ── */
+[data-tip] { position: relative; cursor: help; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+  background: var(--surface3); color: var(--text); padding: 4px 8px;
+  border-radius: 6px; font-size: 11px; white-space: nowrap;
+  pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  z-index: 100;
+}
+[data-tip]:hover::after { opacity: 1; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div>
+      <h1>Analytics Query Engine</h1>
+      <p>4-Stage GenAI Pipeline · NL → Executable Analytics</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="badge" id="ws-badge">
+      <div class="dot"></div>
+      <span>Connecting...</span>
+    </div>
+    <button class="btn-sm secondary" onclick="runBenchmark()">⚡ Benchmark</button>
+    <button class="btn-sm secondary" onclick="clearContext()">🗑 Clear Chat</button>
+  </div>
+</header>
+
+<div class="main">
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <!-- API Key -->
+  <div class="sidebar-section">
+    <h3>🔑 Gemini API Key</h3>
+    <div class="key-row">
+      <input type="password" id="api-key-input" placeholder="AIza..." />
+      <button class="btn-sm" onclick="setApiKey()">Set</button>
+    </div>
+    <div id="key-status" style="font-size:11px;color:var(--text3);margin-top:6px;"></div>
+  </div>
+
+  <!-- Sample Queries -->
+  <div class="sidebar-section">
+    <h3>💡 Sample Queries</h3>
+    <div class="sample-list" id="sample-list">
+      <!-- Loaded dynamically -->
+      <div class="sample-item" onclick="useQuery(this)">Total sales in India for March</div>
+      <div class="sample-item" onclick="useQuery(this)">Top 2 cities by profit</div>
+      <div class="sample-item" onclick="useQuery(this)">Average order value by region</div>
+      <div class="sample-item" onclick="useQuery(this)">Which region missed its target in Feb?</div>
+      <div class="sample-item" onclick="useQuery(this)">Sales contribution % by category</div>
+      <div class="sample-item" onclick="useQuery(this)">Top product in each region</div>
+      <div class="sample-item" onclick="useQuery(this)">YoY growth in revenue</div>
+      <div class="sample-item" onclick="useQuery(this)">Revenue of top 3 customers per region</div>
+    </div>
+  </div>
+
+  <!-- Feedback Stats -->
+  <div class="sidebar-section">
+    <h3>📊 Feedback Stats</h3>
+    <div class="stat-grid" id="feedback-stats">
+      <div class="stat-card"><div class="val" id="stat-total">0</div><div class="lbl">Total</div></div>
+      <div class="stat-card"><div class="val" id="stat-acc" style="color:var(--accent3)">–</div><div class="lbl">Accuracy</div></div>
+      <div class="stat-card"><div class="val" id="stat-ok" style="color:var(--accent3)">0</div><div class="lbl">Correct</div></div>
+      <div class="stat-card"><div class="val" id="stat-nok" style="color:var(--danger)">0</div><div class="lbl">Incorrect</div></div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div style="padding:10px 16px 6px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;">
+    🕒 Session History
+  </div>
+  <div class="history-list" id="history-list"></div>
+</aside>
+
+<!-- ── Chat Area ── -->
+<div class="chat-area">
+  <div class="messages" id="messages">
+    <!-- Welcome -->
+    <div class="welcome" id="welcome">
+      <div class="big-icon">🧬</div>
+      <h2>Intelligent Analytics Query Engine</h2>
+      <p>Ask anything about your sales data in plain English.<br/>
+         The 4-stage GenAI pipeline converts it to executable analytics with full transparency.</p>
+      <div class="pipeline-steps">
+        <div class="ps"><div class="ps-num">1</div> Query DNA</div>
+        <div class="ps"><div class="ps-num">2</div> Dual-Path Code</div>
+        <div class="ps"><div class="ps-num">3</div> Self-Critique</div>
+        <div class="ps"><div class="ps-num">4</div> Feedback Loop</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="query-input" placeholder="Ask anything… e.g. 'Top 2 cities by profit' or 'Which region missed target in Feb?'"
+        rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendQuery()" title="Send query">➤</button>
+    </div>
+    <div class="input-hint">
+      <span>Press <b>Enter</b> to send, <b>Shift+Enter</b> for newline</span>
+      <span class="hint-chip" onclick="useHint('What is the total revenue?')">💰 Revenue</span>
+      <span class="hint-chip" onclick="useHint('Top 2 cities by profit')">🏆 Top N</span>
+      <span class="hint-chip" onclick="useHint('YoY growth in revenue')">📈 YoY</span>
+      <span class="hint-chip" onclick="useHint('Which region missed its target in Feb?')">🎯 Target</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .main -->
+</div><!-- end .app -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let ws = null;
+let sessionId = 'session_' + Date.now();
+let queryHistory = [];
+let currentQuery = '';
+let currentResultData = null;
+let sending = false;
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/query`);
+
+  ws.onopen = () => {
+    setWSBadge(true);
+  };
+
+  ws.onclose = () => {
+    setWSBadge(false);
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => {
+    setWSBadge(false);
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleWSMessage(msg);
+  };
+}
+
+function setWSBadge(connected) {
+  const badge = document.getElementById('ws-badge');
+  badge.className = 'badge' + (connected ? ' connected' : '');
+  badge.querySelector('span').textContent = connected ? 'Live' : 'Reconnecting...';
+}
+
+function sendViaWS(query) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    // Fallback to REST
+    return sendViaREST(query);
+  }
+  ws.send(JSON.stringify({ query, session_id: sessionId }));
+}
+
+// ── WebSocket message handler ──────────────────────────────────────────────
+let activeProgressEl = null;
+
+function handleWSMessage(msg) {
+  if (msg.type === 'error') {
+    showError(msg.message);
+    setSending(false);
+    return;
+  }
+
+  if (msg.type === 'stage_start') {
+    updateStageProgress(msg.stage, 'active', msg.label);
+    return;
+  }
+
+  if (msg.type === 'stage_complete') {
+    updateStageProgress(msg.stage, 'done', msg.label);
+    return;
+  }
+
+  if (msg.type === 'complete') {
+    currentResultData = msg.result;
+    renderResult(msg.result);
+    setSending(false);
+    updateFeedbackStats(msg.result);
+    addToHistory(msg.result);
+  }
+}
+
+// ── Stage Progress ─────────────────────────────────────────────────────────
+function createProgressEl() {
+  const el = document.createElement('div');
+  el.className = 'pipeline-progress anim-in';
+  el.innerHTML = `
+    ${makeStage(1,'🧬','Query DNA')}
+    <div class="stage-connector" id="conn-1-2"></div>
+    ${makeStage(2,'⚡','Code Gen')}
+    <div class="stage-connector" id="conn-2-3"></div>
+    ${makeStage(3,'🤔','Critique')}
+    <div class="stage-connector" id="conn-3-4"></div>
+    ${makeStage(4,'🔁','Feedback')}
+  `;
+  return el;
+}
+
+function makeStage(n, icon, label) {
+  return `
+    <div class="stage-pip" id="stage-${n}">
+      <div class="sp-dot">${n}</div>
+      <div class="sp-label">${icon} ${label}</div>
+    </div>`;
+}
+
+function updateStageProgress(stage, status, label) {
+  if (!activeProgressEl) return;
+  const el = activeProgressEl.querySelector(`#stage-${stage}`);
+  if (!el) return;
+  el.className = `stage-pip ${status}`;
+
+  if (status === 'done' && stage < 4) {
+    const conn = activeProgressEl.querySelector(`#conn-${stage}-${stage+1}`);
+    if (conn) conn.classList.add('done');
+    // Auto-activate next
+    updateStageProgress(stage + 1, 'active', '');
+  }
+}
+
+// ── Send Query ─────────────────────────────────────────────────────────────
+function sendQuery() {
+  const input = document.getElementById('query-input');
+  const query = input.value.trim();
+  if (!query || sending) return;
+
+  currentQuery = query;
+  input.value = '';
+  autoResize(input);
+  setSending(true);
+
+  // Hide welcome
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // Add user bubble
+  const messages = document.getElementById('messages');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg user anim-in';
+  userMsg.innerHTML = `<div class="msg-bubble">${escHtml(query)}</div>`;
+  messages.appendChild(userMsg);
+
+  // Add assistant loading
+  const assistantMsg = document.createElement('div');
+  assistantMsg.className = 'msg assistant anim-in';
+  assistantMsg.id = 'current-result';
+
+  const progressEl = createProgressEl();
+  activeProgressEl = progressEl;
+  updateStageProgress(1, 'active', 'Parsing...');
+
+  assistantMsg.appendChild(progressEl);
+
+  const loadingText = document.createElement('div');
+  loadingText.className = 'loading-text';
+  loadingText.style.cssText = 'font-size:13px;padding:8px 0;';
+  loadingText.textContent = 'Analyzing your query through the 4-stage pipeline...';
+  assistantMsg.appendChild(loadingText);
+
+  messages.appendChild(assistantMsg);
+  scrollToBottom();
+
+  sendViaWS(query);
+}
+
+async function sendViaREST(query) {
+  try {
+    const res = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, session_id: sessionId })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Query failed');
+    }
+    const result = await res.json();
+    currentResultData = result;
+    renderResult(result);
+    setSending(false);
+    updateFeedbackStats(result);
+    addToHistory(result);
+  } catch (e) {
+    showError(e.message);
+    setSending(false);
+  }
+}
+
+// ── Render Result ──────────────────────────────────────────────────────────
+function renderResult(data) {
+  const container = document.getElementById('current-result');
+  if (!container) return;
+
+  // Mark all stages done
+  for (let i = 1; i <= 4; i++) updateStageProgress(i, 'done', '');
+  container.querySelector('.loading-text')?.remove();
+
+  const card = document.createElement('div');
+  card.className = 'result-card msg-bubble anim-in';
+  card.style.cssText = 'max-width:100%;width:100%;margin-top:10px;';
+
+  // Tabs
+  const tabs = `
+    <div class="rc-tabs">
+      <div class="rc-tab active" onclick="switchTab(this,'tab-result')">📊 Result</div>
+      <div class="rc-tab" onclick="switchTab(this,'tab-dna')">🧬 Query DNA</div>
+      <div class="rc-tab" onclick="switchTab(this,'tab-code')">⚡ Code</div>
+      <div class="rc-tab" onclick="switchTab(this,'tab-explain')">🤔 Explanation</div>
+    </div>
+  `;
+
+  // Tab 1: Result
+  const resultHTML = buildResultPanel(data);
+  // Tab 2: Query DNA
+  const dnaHTML = buildDNAPanel(data);
+  // Tab 3: Code
+  const codeHTML = buildCodePanel(data);
+  // Tab 4: Explanation
+  const explainHTML = buildExplainPanel(data);
+
+  card.innerHTML = tabs + resultHTML + dnaHTML + codeHTML + explainHTML;
+
+  // Feedback row
+  const fbRow = document.createElement('div');
+  fbRow.className = 'feedback-row';
+  fbRow.innerHTML = `
+    <span>Was this result correct?</span>
+    <button class="thumb-btn" id="thumb-up" onclick="submitFeedback(true, this)" title="Mark correct">
+      👍 Correct
+    </button>
+    <button class="thumb-btn thumbdown" id="thumb-down" onclick="submitFeedback(false, this)" title="Mark incorrect">
+      👎 Incorrect
+    </button>
+  `;
+  card.appendChild(fbRow);
+
+  container.appendChild(card);
+  scrollToBottom();
+
+  // Animate confidence gauge
+  setTimeout(() => {
+    animateGauge(data.confidence_score || 0);
+  }, 200);
+}
+
+function buildResultPanel(data) {
+  let resultHTML = '';
+  const r = data.result;
+
+  if (!r || data.execution_error) {
+    resultHTML = `<div style="padding:20px;text-align:center;color:var(--danger);">
+      ⚠ Execution failed<br>
+      <code style="font-size:11px;color:var(--text2);">${escHtml((data.execution_error||'').slice(0,300))}</code>
+    </div>`;
+  } else if (r.type === 'dataframe') {
+    const anomalyCells = getAnomalyCells(data.anomalies);
+    let anomalyBanner = '';
+    if (data.anomalies && data.anomalies.length > 0) {
+      anomalyBanner = `<div class="anomaly-banner">
+        ⚠ ${data.anomalies.length} statistical outlier(s) detected (highlighted in table)
+        ${data.anomalies.map(a => `<b>${a.column}</b>=${a.value} (mean ${a.mean})`).join(', ')}
+      </div>`;
+    }
+    let thead = `<tr>${r.columns.map(c => `<th>${escHtml(String(c))}</th>`).join('')}</tr>`;
+    let tbody = r.data.map((row, ri) =>
+      `<tr>${row.map((cell, ci) => {
+        const isNum = typeof cell === 'number';
+        const isAnomaly = anomalyCells.has(`${ri}-${ci}`);
+        return `<td class="${isNum?'num':''} ${isAnomaly?'cell-anomaly':''}">${isNum ? formatNum(cell) : escHtml(String(cell))}</td>`;
+      }).join('')}</tr>`
+    ).join('');
+
+    resultHTML = `${anomalyBanner}
+      <div class="data-table-wrap">
+        <table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+      </div>
+      <div style="padding:8px 12px;font-size:11px;color:var(--text3);">${r.shape[0]} rows × ${r.shape[1]} cols</div>`;
+  } else if (r.type === 'scalar') {
+    resultHTML = `<div class="scalar-result">
+      <div class="sv">${formatNum(r.value)}</div>
+      <div class="sk">Result</div>
+    </div>`;
+  } else if (r.type === 'series') {
+    let rows = r.index.map((idx, i) =>
+      `<tr><td>${escHtml(String(idx))}</td><td class="num">${formatNum(r.values[i])}</td></tr>`
+    ).join('');
+    resultHTML = `<div class="data-table-wrap">
+      <table class="data-table"><thead><tr><th>Index</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+  } else {
+    resultHTML = `<div style="padding:16px;font-size:13px;">${escHtml(String(r.value||r))}</div>`;
+  }
+
+  return `<div class="rc-panel active" data-panel="tab-result">${resultHTML}</div>`;
+}
+
+function buildDNAPanel(data) {
+  const intent = data.intent || {};
+  const chips = [
+    { key: 'Intent Type', val: intentBadge(intent.intent_type) },
+    { key: 'Complexity', val: intent.complexity || '–' },
+    { key: 'Metrics', val: (intent.metrics||[]).join(', ') || '–' },
+    { key: 'Dimensions', val: (intent.dimensions||[]).join(', ') || '–' },
+    { key: 'Join Targets', val: intent.join_targets ? '✓ Yes' : '✗ No' },
+    { key: 'Temporal', val: intent.temporal?.period || intent.temporal?.comparison || '–' },
+    { key: 'Top N', val: intent.ranking?.top_n || '–' },
+    { key: 'Partition By', val: intent.ranking?.partition_by || '–' },
+  ];
+
+  let filtersHTML = '';
+  if (intent.filters && intent.filters.length) {
+    filtersHTML = `<div style="margin-top:10px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;">Filters</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${intent.filters.map(f =>
+          `<span style="padding:3px 10px;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.3);border-radius:12px;font-size:11px;color:var(--accent);">
+            ${escHtml(f.column)} ${escHtml(f.operator)} <b>${escHtml(String(f.value))}</b>
+          </span>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  let subQHTML = '';
+  if (data.sub_queries && data.sub_queries.length > 0) {
+    subQHTML = `<div style="margin-top:10px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;">Multi-hop Decomposition</div>
+      <div class="sub-queries">
+        ${data.sub_queries.map((sq, i) =>
+          `<div class="sq-item"><div class="sq-num">${i+1}</div><div>${escHtml(sq)}</div></div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="rc-panel" data-panel="tab-dna">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5;">
+      ${escHtml(data.intent_explanation || '')}
+    </div>
+    <div class="dna-grid">
+      ${chips.map(c => `<div class="dna-chip">
+        <div class="dc-key">${c.key}</div>
+        <div class="dc-val">${c.val}</div>
+      </div>`).join('')}
+    </div>
+    ${filtersHTML}
+    ${subQHTML}
+  </div>`;
+}
+
+function buildCodePanel(data) {
+  const logic = data.generated_logic || {};
+  const pandas = logic.pandas || '# No code generated';
+  const sql = logic.sql || '-- No SQL generated';
+
+  return `<div class="rc-panel" data-panel="tab-code">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">${escHtml(logic.approach||'')}</div>
+    <div class="code-toggle">
+      <button class="code-lang-btn active" id="btn-pandas" onclick="switchCode('pandas',this)">🐍 Pandas</button>
+      <button class="code-lang-btn" id="btn-sql" onclick="switchCode('sql',this)">🗄 SQL</button>
+    </div>
+    <div id="code-pandas" class="code-block">
+      <pre>${syntaxHighlightPython(escHtml(pandas))}</pre>
+    </div>
+    <div id="code-sql" class="code-block" style="display:none;">
+      <pre>${syntaxHighlightSQL(escHtml(sql))}</pre>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text3);">
+      ${logic.attempts > 1 ? `⚠ Required ${logic.attempts} attempts (auto-retried with error feedback)` : '✓ Generated on first attempt'}
+    </div>
+  </div>`;
+}
+
+function buildExplainPanel(data) {
+  const score = data.confidence_score || 0;
+  const label = data.confidence_label || 'Medium';
+  const bias = data.feedback_bias || {};
+  const adj = bias.score_adjustment || 0;
+  const adjClass = adj >= 0 ? '' : 'neg';
+  const adjSign = adj >= 0 ? '+' : '';
+
+  let biasHTML = '';
+  if (Math.abs(adj) > 0.01) {
+    biasHTML = `<div class="bias-section" style="margin-top:10px;">
+      <b>Feedback Bias Applied:</b>
+      Raw confidence ${((data.confidence_raw||0)*100).toFixed(0)}%
+      → Adjusted <span class="bias-adj ${adjClass}">${adjSign}${(adj*100).toFixed(0)}%</span>
+      based on ${bias.similar_queries?.length||0} similar past queries.
+      ${bias.similar_queries?.length ? `<br><small style="color:var(--text3);">Most similar: "${bias.similar_queries[0]?.query}" (${(bias.similar_queries[0]?.similarity*100).toFixed(0)}% match, was ${bias.similar_queries[0]?.was_correct?'✓ correct':'✗ incorrect'})</small>` : ''}
+    </div>`;
+  }
+
+  const caveatsHTML = (data.caveats||[]).length
+    ? `<ul class="caveats-list">${data.caveats.map(c=>`<li>${escHtml(c)}</li>`).join('')}</ul>`
+    : '';
+
+  const improveHTML = data.suggested_improvement
+    ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(88,166,255,0.07);border-radius:8px;font-size:12px;color:var(--accent);">
+        💡 ${escHtml(data.suggested_improvement)}
+      </div>`
+    : '';
+
+  return `<div class="rc-panel" data-panel="tab-explain">
+    <div class="confidence-section">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 36 36">
+          <circle class="gauge-bg" cx="18" cy="18" r="15.9" />
+          <circle class="gauge-fill" id="gauge-circle" cx="18" cy="18" r="15.9"
+            stroke="${gaugeColor(score)}"
+            stroke-dasharray="100 100"
+            stroke-dashoffset="100" />
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-pct" id="gauge-pct" style="color:${gaugeColor(score)}">0%</div>
+          <div class="gauge-lbl">Conf.</div>
+        </div>
+      </div>
+      <div class="conf-detail">
+        <div class="conf-label ${label}">${label} Confidence</div>
+        <div class="conf-text" style="margin-top:4px;">
+          <b>Understood:</b> ${escHtml(data.what_was_understood||'')}
+        </div>
+        <div class="conf-text" style="margin-top:4px;">
+          <b>Method:</b> ${escHtml(data.how_result_was_derived||'')}
+        </div>
+        ${caveatsHTML}
+      </div>
+    </div>
+    ${improveHTML}
+    ${biasHTML}
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);">
+      ⏱ Computed in ${data.elapsed_seconds}s
+    </div>
+  </div>`;
+}
+
+// ── Gauge animation ────────────────────────────────────────────────────────
+function animateGauge(score) {
+  const circle = document.getElementById('gauge-circle');
+  const pctEl = document.getElementById('gauge-pct');
+  if (!circle || !pctEl) return;
+
+  const circumference = 2 * Math.PI * 15.9;
+  const target = score * 100;
+  const offset = circumference - (target / 100) * circumference;
+
+  circle.style.strokeDasharray = `${circumference} ${circumference}`;
+  circle.style.strokeDashoffset = circumference;
+
+  let current = 0;
+  const duration = 1000;
+  const start = performance.now();
+
+  function step(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    current = target * eased;
+    circle.style.strokeDashoffset = circumference - (current / 100) * circumference;
+    pctEl.textContent = Math.round(current) + '%';
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function gaugeColor(score) {
+  if (score >= 0.75) return '#10b981';
+  if (score >= 0.5) return '#f59e0b';
+  return '#ef4444';
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(tabEl, panelId) {
+  const card = tabEl.closest('.result-card');
+  if (!card) return;
+  card.querySelectorAll('.rc-tab').forEach(t => t.classList.remove('active'));
+  card.querySelectorAll('.rc-panel').forEach(p => p.classList.remove('active'));
+  tabEl.classList.add('active');
+  card.querySelector(`.rc-panel[data-panel="${panelId}"]`)?.classList.add('active');
+
+  if (panelId === 'tab-explain') {
+    setTimeout(() => animateGauge(currentResultData?.confidence_score || 0), 100);
+  }
+}
+
+function switchCode(lang, btn) {
+  document.querySelectorAll('.code-lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('code-pandas').style.display = lang === 'pandas' ? 'block' : 'none';
+  document.getElementById('code-sql').style.display = lang === 'sql' ? 'block' : 'none';
+}
+
+// ── Feedback ───────────────────────────────────────────────────────────────
+async function submitFeedback(isCorrect, btnEl) {
+  const upBtn = document.getElementById('thumb-up');
+  const downBtn = document.getElementById('thumb-down');
+  upBtn.classList.remove('active-up');
+  downBtn.classList.remove('active-down');
+  if (isCorrect) upBtn.classList.add('active-up');
+  else downBtn.classList.add('active-down');
+
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: currentQuery, is_correct: isCorrect })
+    });
+    const data = await res.json();
+    updateFeedbackStatsDisplay(data.stats);
+  } catch (e) {
+    console.error('Feedback error:', e);
+  }
+}
+
+function updateFeedbackStats(data) {
+  // Refresh stats from backend
+  fetch('/api/feedback/stats')
+    .then(r => r.json())
+    .then(s => updateFeedbackStatsDisplay(s))
+    .catch(() => {});
+}
+
+function updateFeedbackStatsDisplay(stats) {
+  document.getElementById('stat-total').textContent = stats.total || 0;
+  document.getElementById('stat-ok').textContent = stats.correct || 0;
+  document.getElementById('stat-nok').textContent = stats.incorrect || 0;
+  document.getElementById('stat-acc').textContent =
+    stats.accuracy != null ? (stats.accuracy * 100).toFixed(0) + '%' : '–';
+}
+
+// ── History ────────────────────────────────────────────────────────────────
+function addToHistory(data) {
+  queryHistory.unshift(data);
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = queryHistory.slice(0, 20).map((d, i) => {
+    const score = d.confidence_score || 0;
+    const confClass = score >= 0.75 ? 'high' : score >= 0.5 ? 'medium' : 'low';
+    return `<div class="history-item" onclick="replayQuery('${escAttr(d.query)}')">
+      <div class="hi-icon">💬</div>
+      <div class="hi-text">${escHtml(d.query.slice(0,60))}${d.query.length>60?'…':''}</div>
+      <div class="hi-conf ${confClass}">${Math.round(score*100)}%</div>
+    </div>`;
+  }).join('');
+}
+
+function replayQuery(query) {
+  document.getElementById('query-input').value = query;
+  document.getElementById('query-input').focus();
+}
+
+// ── Benchmark ──────────────────────────────────────────────────────────────
+async function runBenchmark() {
+  if (sending) return;
+  setSending(true);
+
+  const messages = document.getElementById('messages');
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const div = document.createElement('div');
+  div.className = 'msg assistant anim-in';
+  div.innerHTML = `<div class="msg-bubble" style="width:100%;max-width:100%">
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px;">⚡ Running all 8 benchmark queries...</div>
+    <div class="loading-text">This may take 60–120 seconds. Please wait.</div>
+  </div>`;
+  messages.appendChild(div);
+  scrollToBottom();
+
+  try {
+    const res = await fetch('/api/benchmark', { method: 'POST' });
+    const data = await res.json();
+
+    let rows = data.results.map(r => {
+      const score = r.confidence_score || 0;
+      const color = score >= 0.75 ? 'var(--accent3)' : score >= 0.5 ? 'var(--warn)' : 'var(--danger)';
+      return `<div class="bench-row">
+        <div class="bench-q">${escHtml(r.query)}</div>
+        <div class="bench-conf" style="color:${color}">${(score*100).toFixed(0)}%</div>
+        <div style="font-size:11px;color:var(--text3);min-width:40px;text-align:right;">${r.elapsed_seconds}s</div>
+      </div>`;
+    }).join('');
+
+    const avg = data.results.reduce((s,r) => s + (r.confidence_score||0), 0) / data.results.length;
+
+    div.innerHTML = `<div class="msg-bubble" style="width:100%;max-width:100%">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px;">
+        ⚡ Benchmark Complete — Avg Confidence: ${(avg*100).toFixed(0)}%
+      </div>
+      <div class="result-card">${rows}</div>
+    </div>`;
+  } catch(e) {
+    div.innerHTML = `<div class="msg-bubble" style="width:100%;max-width:100%;color:var(--danger);">
+      Benchmark failed: ${escHtml(e.message)}
+    </div>`;
+  }
+  setSending(false);
+  scrollToBottom();
+}
+
+// ── API Key ────────────────────────────────────────────────────────────────
+async function setApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) return;
+  const status = document.getElementById('key-status');
+  status.textContent = 'Setting...';
+  try {
+    const res = await fetch('/api/set-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: key })
+    });
+    const d = await res.json();
+    status.textContent = '✓ ' + d.message;
+    status.style.color = 'var(--accent3)';
+    document.getElementById('api-key-input').value = '';
+  } catch(e) {
+    status.textContent = '✗ ' + e.message;
+    status.style.color = 'var(--danger)';
+  }
+}
+
+async function clearContext() {
+  await fetch('/api/clear-context', { method: 'POST' }).catch(()=>{});
+  document.getElementById('messages').innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="big-icon">🧬</div>
+      <h2>Chat cleared</h2>
+      <p>Session context reset. Start a new query.</p>
+    </div>`;
+  queryHistory = [];
+  renderHistory();
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function useQuery(el) {
+  document.getElementById('query-input').value = el.textContent.trim();
+  document.getElementById('query-input').focus();
+}
+
+function useHint(q) {
+  document.getElementById('query-input').value = q;
+  document.getElementById('query-input').focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuery(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function setSending(val) {
+  sending = val;
+  document.getElementById('send-btn').disabled = val;
+  document.getElementById('query-input').disabled = val;
+}
+
+function scrollToBottom() {
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function showError(msg) {
+  const container = document.getElementById('current-result');
+  const el = document.createElement('div');
+  el.style.cssText = 'color:var(--danger);font-size:13px;padding:8px 0;';
+  el.textContent = '✗ Error: ' + msg;
+  if (container) container.appendChild(el);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) { return String(s).replace(/'/g,"\\'"); }
+
+function formatNum(v) {
+  if (typeof v !== 'number') return v;
+  if (Number.isInteger(v)) return v.toLocaleString();
+  return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function getAnomalyCells(anomalies) {
+  const set = new Set();
+  // We only have row label, not index — skip for now; anomaly banner shows details
+  return set;
+}
+
+function intentBadge(type) {
+  if (!type) return '–';
+  return `<span class="intent-badge ${type}">${type}</span>`;
+}
+
+function syntaxHighlightPython(code) {
+  return code
+    .replace(/\b(import|from|as|if|else|elif|for|in|return|def|class|True|False|None|and|or|not|lambda|with|pass)\b/g, '<span class="kw">$1</span>')
+    .replace(/\b(pd|np|df|targets|result|groupby|agg|merge|sort_values|nlargest|rank|reset_index|round|sum|count|mean)\b/g, '<span class="fn">$1</span>')
+    .replace(/(&#39;[^&#]*&#39;|&quot;[^&]*&quot;)/g, '<span class="st">$1</span>')
+    .replace(/(#.*$)/gm, '<span class="cm">$1</span>');
+}
+
+function syntaxHighlightSQL(code) {
+  return code
+    .replace(/\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|JOIN|LEFT JOIN|ON|LIMIT|WITH|AS|PARTITION BY|OVER|RANK|DESC|ASC|AND|OR|NOT|IN|BETWEEN|SUM|COUNT|AVG|MAX|MIN|ROUND|CAST|COALESCE|NULLIF|CASE|WHEN|THEN|ELSE|END)\b/gi,
+      '<span class="sql-kw">$1</span>');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+connectWS();
+fetch('/api/feedback/stats').then(r => r.json()).then(updateFeedbackStatsDisplay).catch(()=>{});
+</script>
+</body>
+</html>

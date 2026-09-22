@@ -1,0 +1,191 @@
+[
+  {
+    "query": "Top 2 cities by profit",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:45:16.069845"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:52:58.476016"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:00.427861"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:01.261693"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:01.428413"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:01.576583"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:01.726340"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:01.894688"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.049595"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.196099"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.365302"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.506661"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.651882"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.813288"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:02.968966"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:03.117437"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:03.255671"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:03.418261"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:03.579722"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:03.726481"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:03.884450"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:04.039170"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:04.200684"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:04.372511"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:04.518534"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:04.661320"
+  },
+  {
+    "query": "Sales contribution % by category",
+    "is_correct": true,
+    "intent_type": null,
+    "notes": null,
+    "timestamp": "2026-09-21T18:53:04.818165"
+  }
+]
