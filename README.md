@@ -28,7 +28,7 @@ Our approach breaks the complex problem of Text-to-SQL/Pandas into a highly reli
 - **Explanation Tab:** High Confidence (0.9). "Understood as ranking top 2 cities by total profit. Computed by grouping by city, summing profit, and taking the top 2."
 
 ## 5. Improvements (Given More Time)
-If we had more time to expand the project, we would implement the following novel features and refinements:
+If I had more time to expand the project, I would implement the following novel features and refinements:
 1. **UI Improvements (Automated Data Viz):** Upgrade the tabular results to render interactive data visualizations (e.g., using Plotly.js, D3.js, or Chart.js). The UI would intelligently choose to render a bar chart, line graph, or pie chart depending on the extracted Query DNA.
 2. **Vector Database Integration (Semantic Search):** Replace the current TF-IDF feedback similarity with a local vector database (like ChromaDB or FAISS) using sentence-transformers to capture true semantic meaning for the feedback loop.
 3. **WebAssembly / Secure Sandboxing:** Run the generated analytical Python code entirely inside the browser using Pyodide (WebAssembly), or in an isolated ephemeral Docker container, eliminating all security risks associated with server-side code execution.
